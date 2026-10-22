@@ -67,9 +67,8 @@ AWS-Serverless-Employee-Manager/
 ├── lambda/
 │   ├── get_function.py
 │   └── insert_function.py
-│
-├── architecture.png
-└── README.md
+ architecture.png
+ README.md
 ```
 
 Adjust the filenames and folders to match the actual files uploaded to GitHub.
