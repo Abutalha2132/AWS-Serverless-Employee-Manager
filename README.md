@@ -1,59 +1,60 @@
-# AWS-Serverless-Project
 # AWS Serverless Employee Manager
 
-A serverless employee management application built using AWS services. The application allows users to add employee details and retrieve employee records through a web interface connected to a REST API.
+A serverless employee management web application built using Amazon Web Services (AWS). The application allows users to insert and retrieve employee records through a web interface connected to a REST API.
 
 ## Project Overview
 
-**Designed and deployed a web application using API Gateway, AWS Lambda, DynamoDB, and S3.**
-Implemented secure frontend hosting with S3 + CloudFront integrated (Optional: with ACM certificates, WAF, and Route 53 DNS).
+This project demonstrates a serverless architecture using AWS managed services. The frontend is hosted in a private Amazon S3 bucket and delivered through Amazon CloudFront using Origin Access Control (OAC). Amazon API Gateway connects the frontend to Python-based AWS Lambda functions, while Amazon DynamoDB stores employee records.
 
-The project also provides practical experience with IAM permissions, CORS configuration, CloudFront distribution, and serverless application deployment.
+The project provides practical experience with serverless application development, API integration, IAM permissions, CORS configuration, secure content delivery, and AWS troubleshooting.
 
-## Architecture
+## AWS Architecture
 
-![AWS Serverless Employee Manager Architecture](architecture.png)
+<img width="1536" height="1024" alt="Serverless Employee Manager AWS Architecture (1)" src="https://github.com/user-attachments/assets/8785d88e-bf03-4ce4-bbf1-5c6f3b2f0577" />
 
-### Architecture Workflow
 
-1. Users access the web application through Amazon CloudFront.
-2. Amazon S3 stores the static frontend files.
-3. Amazon API Gateway receives HTTP requests from the frontend.
-4. AWS Lambda executes backend logic for inserting and retrieving employee records.
-5. Amazon DynamoDB stores employee information.
-6. AWS IAM controls access to AWS resources.
-7. Amazon CloudWatch can be used to monitor Lambda execution and troubleshoot errors.
+### Architecture Flow
+
+1. A user accesses the web application through Amazon CloudFront over HTTPS.
+2. CloudFront retrieves frontend files from the private Amazon S3 bucket using Origin Access Control (OAC).
+3. The frontend sends GET and POST requests to Amazon API Gateway.
+4. API Gateway routes requests to the appropriate Lambda function.
+5. GetFunction retrieves employee records from DynamoDB.
+6. InsertFunction validates and inserts employee records into DynamoDB.
+7. The API response is returned to the frontend and displayed to the user.
 
 ## AWS Services Used
 
 | AWS Service | Purpose |
 |---|---|
-| Amazon S3 | Stores frontend HTML, CSS, and JavaScript files |
-| Amazon CloudFront | Delivers the frontend securely and efficiently |
+| Amazon S3 | Stores frontend HTML, CSS, and JavaScript files in a private bucket |
+| Amazon CloudFront | Delivers frontend content over HTTPS |
+| Origin Access Control (OAC) | Allows CloudFront to access the private S3 origin |
 | Amazon API Gateway | Exposes REST API endpoints |
-| AWS Lambda | Executes backend Python code without managing servers |
-| Amazon DynamoDB | Stores employee records in a NoSQL database |
-| AWS IAM | Manages permissions for Lambda and other AWS resources |
-| Amazon CloudWatch | Supports logging, monitoring, and troubleshooting |
+| AWS Lambda | Executes Python backend functions |
+| Amazon DynamoDB | Stores employee records |
+| AWS IAM | Controls permissions for AWS resources |
+| Amazon CloudWatch | Provides Lambda logs and monitoring |
 
 ## Technologies Used
 
-- **Frontend:** HTML, CSS, JavaScript
-- **Backend:** Python
-- **Cloud Platform:** Amazon Web Services (AWS)
-- **API:** Amazon API Gateway REST API
-- **Database:** Amazon DynamoDB
-- **Delivery:** Amazon CloudFront and Amazon S3
+- Frontend: HTML, CSS, JavaScript
+- Backend: Python
+- Cloud Platform: Amazon Web Services
+- API: Amazon API Gateway REST API
+- Database: Amazon DynamoDB
+- Content Delivery: Amazon CloudFront
+- Object Storage: Amazon S3
 
 ## Application Features
 
 - Add employee records through a web form.
 - Retrieve and display employee records.
 - Store employee information in Amazon DynamoDB.
-- Use separate Lambda functions for insert and retrieve operations.
-- Connect the frontend to backend services using API Gateway.
-- Handle API responses and display employee information in the interface.
-- Configure CORS to allow requests from the hosted frontend.
+- Use separate Lambda functions for insertion and retrieval.
+- Integrate the frontend with backend services through API Gateway.
+- Configure CORS for frontend-to-API communication.
+- Deliver frontend content through CloudFront without making the S3 bucket publicly accessible.
 
 ## Project Structure
 
@@ -71,7 +72,7 @@ AWS-Serverless-Employee-Manager/
 └── README.md
 ```
 
-*Adjust the filenames in this structure to match the actual files in your repository.*
+Adjust the filenames and folders to match the actual files uploaded to GitHub.
 
 ## DynamoDB Configuration
 
@@ -79,9 +80,9 @@ AWS-Serverless-Employee-Manager/
 
 **Partition key:** `employeeid`
 
-**Key type:** String
+**Data type:** String
 
-The table stores employee information such as:
+The table stores the following employee attributes:
 
 - `employeeid`
 - `name`
@@ -89,91 +90,105 @@ The table stores employee information such as:
 - `department`
 - `salary`
 
-The `employeeid` field uniquely identifies an employee record.
+The `employeeid` attribute identifies each employee record.
 
 ## Lambda Functions
 
 ### 1. GetFunction
 
-Responsible for retrieving employee records from DynamoDB.
+Handles GET requests to retrieve employee records from DynamoDB.
 
 Responsibilities:
-- Read employee data from the DynamoDB table.
-- Return records in JSON format.
-- Support retrieving all employees or a specific employee when implemented with an `employeeid` query parameter.
+
+- Retrieve employee records from the DynamoDB table.
+- Return data in JSON format.
+- Support retrieving all records or a specific record if implemented with an `employeeid` query parameter.
 - Return appropriate HTTP responses and CORS headers.
 
 ### 2. InsertFunction
 
-Responsible for inserting new employee records into DynamoDB.
+Handles POST requests to add employee records to DynamoDB.
 
 Responsibilities:
-- Read employee details from the API request body.
-- Validate required fields.
+
+- Parse the JSON request body.
+- Validate required employee fields.
 - Insert employee records into DynamoDB.
-- Reject duplicate employee IDs when the conditional write is configured.
+- Prevent duplicate employee IDs when conditional writes are configured.
 - Return appropriate HTTP responses and CORS headers.
 
-## API Configuration
+## API Gateway Configuration
 
 The application uses an API Gateway REST API with the `/employees` resource.
 
-| HTTP Method | Operation |
+| HTTP Method | Purpose |
 |---|---|
-| `GET` | Retrieve employee records |
-| `POST` | Insert a new employee record |
-| `OPTIONS` | Handle browser CORS preflight requests |
+| GET | Retrieve employee records |
+| POST | Insert an employee record |
+| OPTIONS | Handle browser CORS preflight requests |
 
-**API endpoint:**
+**Deployed API endpoint:**
 
 ```text
 https://vdojpubvf2.execute-api.ap-southeast-2.amazonaws.com/ApiDeploy/employees
 ```
 
-The endpoint above is specific to the deployed project. Replace it if you recreate the application in another AWS account or region.
+The endpoint is specific to this deployment. A new deployment may use a different API ID, region, or stage.
 
-## Deployment Guide
+## Secure Frontend Delivery
+
+The frontend uses Amazon S3 and CloudFront with a private origin configuration.
+
+- The S3 bucket remains private.
+- S3 Block Public Access should remain enabled.
+- CloudFront uses Origin Access Control (OAC) to retrieve files from S3.
+- The S3 bucket policy grants the required access to the CloudFront distribution.
+- Users access the application through the CloudFront distribution URL over HTTPS.
+
+This configuration avoids exposing the S3 bucket directly to public users.
+
+## Deployment Steps
 
 ### Step 1: Create the DynamoDB Table
 
 1. Open the Amazon DynamoDB console.
 2. Create a table named `employeeData`.
-3. Set `employeeid` as the partition key.
-4. Choose the String data type.
-5. Create the table.
+3. Configure `employeeid` as the partition key with the String data type.
+4. Create the table.
 
 ### Step 2: Create the Lambda Functions
 
-1. Open the AWS Lambda console.
-2. Create `GetFunction` using Python.
-3. Add the retrieval code.
-4. Create `InsertFunction` using Python.
-5. Add the insertion code.
-6. Configure the appropriate IAM execution permissions for DynamoDB and CloudWatch Logs.
+1. Create `GetFunction` using Python.
+2. Add the employee retrieval code.
+3. Create `InsertFunction` using Python.
+4. Add the employee insertion code.
+5. Configure the required IAM execution permissions for DynamoDB and CloudWatch Logs.
 
 ### Step 3: Configure API Gateway
 
-1. Create or configure a REST API.
+1. Create or configure an API Gateway REST API.
 2. Create the `/employees` resource.
-3. Configure the `GET` method to invoke `GetFunction`.
-4. Configure the `POST` method to invoke `InsertFunction`.
-5. Configure the `OPTIONS` method and CORS headers.
+3. Configure GET to invoke `GetFunction`.
+4. Configure POST to invoke `InsertFunction`.
+5. Configure OPTIONS and the required CORS response headers.
 6. Deploy the API to the `ApiDeploy` stage.
 
-### Step 4: Host the Frontend on S3
+### Step 4: Configure the Private S3 Bucket
 
-1. Create an S3 bucket for the frontend.
+1. Create an S3 bucket for the frontend files.
 2. Upload the HTML, CSS, and JavaScript files.
-3. Configure access using the intended hosting architecture.
-4. For a production deployment, keep the S3 bucket private and use CloudFront with Origin Access Control (OAC).
+3. Keep S3 Block Public Access enabled.
+4. Do not enable public bucket access or rely on the S3 website endpoint.
+5. Configure CloudFront Origin Access Control to access the S3 bucket.
 
 ### Step 5: Configure CloudFront
 
-1. Create a CloudFront distribution with the S3 bucket as its origin.
-2. Configure the S3 origin using OAC.
-3. Set `index.html` as the default root object.
-4. Wait for the distribution to deploy.
-5. Access the application using the CloudFront distribution domain.
+1. Create a CloudFront distribution using the S3 bucket as the origin.
+2. Configure Origin Access Control (OAC).
+3. Update the S3 bucket policy to allow the distribution to access the required objects.
+4. Configure `index.html` as the default root object.
+5. Wait for the distribution to deploy.
+6. Access the application using the CloudFront distribution domain.
 
 ### Step 6: Connect the Frontend to API Gateway
 
@@ -184,58 +199,54 @@ const API_URL =
   "https://vdojpubvf2.execute-api.ap-southeast-2.amazonaws.com/ApiDeploy/employees";
 ```
 
-Update the URL if your API endpoint is different.
+Update the endpoint if your API deployment changes.
 
-Configure CORS in API Gateway and the Lambda responses to allow the exact origin of your frontend. Redeploy the API after making changes to API Gateway configuration.
+Configure CORS to allow the exact CloudFront frontend origin. Ensure the API and Lambda responses return the appropriate CORS headers, including the required methods and headers. Redeploy API Gateway after configuration changes when necessary.
 
 ### Step 7: Test the Application
 
-1. Open the application using the CloudFront URL.
-2. Submit a new employee record.
-3. Check whether the record appears in the employee list.
-4. Verify the item in DynamoDB.
-5. Check Lambda logs in CloudWatch if an error occurs.
-6. Test the GET endpoint independently to verify record retrieval.
+1. Open the CloudFront URL.
+2. Submit an employee record through the web form.
+3. Verify that the record appears in the employee list.
+4. Check the item in DynamoDB.
+5. Test the GET endpoint.
+6. Review Lambda logs in CloudWatch if errors occur.
+7. Check browser developer tools for API and CORS errors.
 
-## Security and Best Practices
+## Security Best Practices
 
-- Follow the principle of least privilege for IAM permissions.
-- Prefer separate IAM execution roles for the two Lambda functions.
 - Keep the S3 bucket private and use CloudFront OAC.
-- Configure API Gateway CORS with the correct frontend origin.
-- Enable CloudWatch logging and useful monitoring alarms.
-- Consider API throttling and AWS WAF protection for applicable entry points.
-- Avoid storing AWS credentials or sensitive information in the repository.
-- Do not commit real employee data or secrets.
+- Apply least-privilege IAM permissions.
+- Prefer separate execution roles for GetFunction and InsertFunction.
+- Configure CORS for the exact frontend origin.
+- Avoid exposing credentials, secrets, or personal data in the repository.
+- Enable appropriate CloudWatch logs and monitoring.
+- Consider API throttling and AWS WAF for applicable public entry points.
 
-## Future Enhancements
+## Monitoring and Optional Enhancements
 
-- Add employee update and delete operations.
-- Add input validation and improved error handling.
-- Introduce pagination for large employee datasets.
-- Configure a custom domain using Amazon Route 53.
-- Add CloudWatch alarms and Amazon SNS notifications.
-- Use AWS WAF to protect supported public entry points.
-- Automate deployment using AWS CloudFormation or CI/CD pipelines.
+The following are potential improvements and should be marked as implemented only after configuration:
 
-## Learning Outcomes
+- AWS WAF for CloudFront or API Gateway, depending on the protected entry point.
+- Amazon Route 53 for a custom domain.
+- AWS Certificate Manager (ACM) for a custom-domain TLS certificate.
+- CloudWatch alarms for Lambda errors and API failures.
+- AWS CloudTrail for auditing AWS API activity.
+- Amazon SNS for monitoring notifications.
+- AWS CloudFormation for repeatable infrastructure deployment.
 
-Through this project, I gained practical experience with:
+**WAF note:** A Web ACL associated with CloudFront protects traffic through that distribution. It does not automatically protect direct requests to the API Gateway `execute-api` endpoint. API protection requires a regional WAF association with API Gateway or routing API traffic through CloudFront.
 
-- Building a serverless application on AWS.
-- Creating and configuring Lambda functions using Python.
-- Integrating API Gateway with Lambda.
-- Storing and retrieving records using DynamoDB.
-- Hosting static websites on S3 and distributing content through CloudFront.
-- Configuring IAM permissions and API CORS.
-- Troubleshooting API requests, Lambda execution, and database operations.
+## What I Learned
+
+Gained hands-on experience with serverless architecture, REST API development, Python-based Lambda functions, NoSQL database integration, secure frontend delivery using a private S3 bucket and CloudFront OAC, IAM permissions, CORS configuration, and troubleshooting AWS deployments.
 
 ## Author
 
 **Abutalha Parkote**
 
-GitHub: [Abutalha2132](https://github.com/Abutalha2132)
+GitHub: https://github.com/Abutalha2132
 
 ## Disclaimer
 
-This project is intended for learning and demonstration purposes. Before using it in production, implement appropriate authentication, authorization, data protection, validation, monitoring, and security controls.
+This project is intended for educational and portfolio purposes. Production deployments should include appropriate authentication, authorization, input validation, data protection, monitoring, and security controls.
