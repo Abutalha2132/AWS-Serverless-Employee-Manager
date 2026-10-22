@@ -1,0 +1,417 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Serverless Employee Manager</title>
+
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 16px;
+      display: grid;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      min-width: 0;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--primary);
+      color: white;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #e5e7eb;
+      color: var(--text);
+    }
+
+    .actions {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.92rem;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    #status {
+      min-height: 20px;
+      font-size: 0.9rem;
+      overflow-wrap: anywhere;
+    }
+
+    .ok {
+      color: #15803d;
+    }
+
+    .err {
+      color: #b91c1c;
+    }
+
+    @media (max-width: 480px) {
+      header h1 {
+        font-size: 1.4rem;
+      }
+
+      main {
+        margin: 16px auto;
+        gap: 16px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      form {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Serverless Employee Manager</h1>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Add Employee</h2>
+
+      <form id="employeeForm">
+        <input
+          id="employeeid"
+          placeholder="Employee ID *"
+          required
+        />
+
+        <input
+          id="name"
+          placeholder="Name *"
+          required
+        />
+
+        <input
+          id="email"
+          type="email"
+          placeholder="Email"
+        />
+
+        <input
+          id="department"
+          placeholder="Department"
+        />
+
+        <input
+          id="salary"
+          type="number"
+          min="0"
+          step="any"
+          placeholder="Salary"
+        />
+
+        <div class="actions">
+          <button type="submit" id="saveBtn">Save</button>
+
+          <button
+            type="button"
+            class="secondary"
+            id="refreshBtn"
+          >
+            Refresh list
+          </button>
+        </div>
+      </form>
+
+      <p id="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="card">
+      <h2>Employees</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Salary</th>
+            </tr>
+          </thead>
+
+          <tbody id="rows">
+            <tr>
+              <td colspan="5">Loading employees...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Add your API URL here.
+    const API_URL =
+      "https://vdojpubvf2.execute-api.ap-southeast-2.amazonaws.com/ApiDeploy/employees";
+
+    const statusEl = document.getElementById("status");
+    const rowsEl = document.getElementById("rows");
+    const formEl = document.getElementById("employeeForm");
+    const saveBtn = document.getElementById("saveBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    function setStatus(message, success = true) {
+      statusEl.textContent = message;
+      statusEl.className = success ? "ok" : "err";
+    }
+
+    // Parse either a direct Lambda response or a wrapped body.
+    async function readApiResponse(response) {
+      const result = await response.json();
+
+      if (!response.ok) {
+        let message = result.message || "HTTP " + response.status;
+
+        // Handle a Lambda response wrapped in an API Gateway body.
+        if (typeof result.body === "string") {
+          try {
+            const inner = JSON.parse(result.body);
+            message = inner.message || message;
+          } catch (_) {
+            // Keep the original error message.
+          }
+        }
+
+        throw new Error(message);
+      }
+
+      let data = result;
+
+      if (data && typeof data.body === "string") {
+        data = JSON.parse(data.body);
+      }
+
+      return data;
+    }
+
+    // Create table cells safely without inserting API data as HTML.
+    function createCell(value) {
+      const cell = document.createElement("td");
+      cell.textContent = value == null ? "" : String(value);
+      return cell;
+    }
+
+    function displayEmployees(employees) {
+      rowsEl.replaceChildren();
+
+      if (employees.length === 0) {
+        const row = document.createElement("tr");
+        const cell = createCell("No employees yet");
+        cell.colSpan = 5;
+        row.appendChild(cell);
+        rowsEl.appendChild(row);
+        return;
+      }
+
+      employees.forEach(employee => {
+        const row = document.createElement("tr");
+
+        row.appendChild(createCell(employee.employeeid));
+        row.appendChild(createCell(employee.name));
+        row.appendChild(createCell(employee.email));
+        row.appendChild(createCell(employee.department));
+        row.appendChild(createCell(employee.salary));
+
+        rowsEl.appendChild(row);
+      });
+    }
+
+    async function loadEmployees() {
+      refreshBtn.disabled = true;
+      setStatus("Loading employees...");
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+
+        const data = await readApiResponse(response);
+
+        if (!Array.isArray(data)) {
+          console.error("Unexpected GET response:", data);
+          throw new Error(
+            "The API did not return an employee array. Check GetFunction and API Gateway integration."
+          );
+        }
+
+        displayEmployees(data);
+        setStatus("Loaded " + data.length + " employee(s).");
+
+      } catch (error) {
+        console.error("GET employees failed:", error);
+
+        const row = document.createElement("tr");
+        const cell = createCell(
+          "Failed to load employees: " + error.message
+        );
+        cell.colSpan = 5;
+        row.appendChild(cell);
+        rowsEl.replaceChildren(row);
+
+        setStatus("Load failed: " + error.message, false);
+
+      } finally {
+        refreshBtn.disabled = false;
+      }
+    }
+
+    formEl.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const payload = {
+        employeeid: document.getElementById("employeeid").value.trim(),
+        name: document.getElementById("name").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        department: document.getElementById("department").value.trim(),
+        salary: document.getElementById("salary").value.trim()
+      };
+
+      if (!payload.employeeid || !payload.name) {
+        setStatus("Employee ID and Name are required.", false);
+        return;
+      }
+
+      saveBtn.disabled = true;
+      setStatus("Saving employee...");
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await readApiResponse(response);
+
+        setStatus(data.message || "Employee saved successfully.");
+
+        formEl.reset();
+
+        // Reload the list after a successful insertion.
+        await loadEmployees();
+
+      } catch (error) {
+        console.error("Save employee failed:", error);
+        setStatus("Save failed: " + error.message, false);
+
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    refreshBtn.addEventListener("click", loadEmployees);
+
+    // Load employees when the page first opens.
+    loadEmployees();
+  </script>
+</body>
+</html>
