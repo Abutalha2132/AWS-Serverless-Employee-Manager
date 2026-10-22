@@ -5,7 +5,8 @@ A serverless employee management application built using AWS services. The appli
 
 ## Project Overview
 
-The **AWS Serverless Employee Manager** demonstrates how to build and deploy a serverless web application using AWS managed services. It uses a static frontend, API Gateway for API requests, AWS Lambda for backend processing, and Amazon DynamoDB for data storage.
+**Designed and deployed a web application using API Gateway, AWS Lambda, DynamoDB, and S3.**
+Implemented secure frontend hosting with S3 + CloudFront integrated (Optional: with ACM certificates, WAF, and Route 53 DNS).
 
 The project also provides practical experience with IAM permissions, CORS configuration, CloudFront distribution, and serverless application deployment.
 
